@@ -1,4 +1,4 @@
-# SpringBoot
+# Spring Boot基础
 
 #### java代码配置方式
 
@@ -147,7 +147,9 @@ spring:
 
 @Slf4j：自动在bean中提供log变量，其实用的是slf4的日志功能
 
-#### SpringBoot整合端口和静态资源
+# Spring Boot整合
+
+#### Spring Boot整合-端口和静态资源
 
 - 修改端口
 
@@ -169,7 +171,7 @@ ResourceProperties.java
 
 
 
-#### Spring Boot整合spring MVC拦截器
+#### Spring Boot整合-spring MVC拦截器
 
 ```java
 package com.tort.tortspringboot.interceptor;
@@ -228,7 +230,7 @@ public class MvcConfig implements WebMvcConfigurer {
 
 ```
 
-#### SpringBoot整合-事务和连接池
+#### Spring Boot整合-事务和连接池
 
 - 事务配置
 
@@ -255,7 +257,7 @@ logging:
     org.springframework: info
  ```
 
-#### SpringBoot整合Mybatis
+#### Spring Boot整合-Mybatis
 
 ```xml
 <dependency>
@@ -293,6 +295,226 @@ public class TortSpringbootApplication {
         SpringApplication.run(TortSpringbootApplication.class, args);
     }
 
+}
+
+```
+
+#### Spring Boot整合-通用Mapper
+
+```xml
+<dependency>
+    <groupId>tk.mybatis</groupId>
+    <artifactId>mapper-spring-boot-starter</artifactId>
+    <version>2.1.5</version>
+</dependency>
+```
+
+- 配置通用mapper扫描（注意：引入的MapperScan包）
+
+```java
+package com.tort.tortspringboot;
+
+//import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import tk.mybatis.spring.annotation.MapperScan;
+
+@SpringBootApplication
+/**
+ * 扫描mapper
+ */
+@MapperScan("com.tort.tortspringboot.mapper")
+public class TortSpringbootApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(TortSpringbootApplication.class, args);
+    }
+
+}
+
+```
+
+- 实体类
+
+```java
+package com.tort.tortspringboot.pojo;
+
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
+import tk.mybatis.mapper.annotation.KeySql;
+
+import javax.persistence.Column;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import java.util.Date;
+
+@Data
+//@Slf4j
+@Table(name = "tb_user")
+public class User {
+
+    @Id
+    @KeySql(useGeneratedKeys = true)
+    private Long id;
+//    @Column(name = "user_name")
+    private String userName;
+    private String password;
+    private String name;
+    private String note;
+    private Integer age;
+    private Date birthday;
+    private Date created;
+    private Date updated;
+}
+
+```
+
+#### Spring Boot整合-Junit测试
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-test</artifactId>
+    <scope>test</scope>
+</dependency>
+
+<dependency>
+    <groupId>junit</groupId>
+    <artifactId>junit</artifactId>
+    <version>4.12</version>
+    <scope>test</scope>
+</dependency>
+```
+
+- 测试注解
+
+```java
+@RunWith(SpringRunner.class)
+@SpringBootTest
+```
+
+```java
+package com.tort.tortspringboot.service;
+
+import com.tort.tortspringboot.pojo.User;
+import org.junit.jupiter.api.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringRunner;
+
+import java.util.Date;
+
+import static org.junit.jupiter.api.Assertions.*;
+@RunWith(SpringRunner.class)
+@SpringBootTest
+class UserServiceTest {
+
+    @Autowired
+    private UserService userService;
+
+    @Test
+    void queryById() {
+        User user = userService.queryById(1L);
+        System.out.println(" user = " + user);
+    }
+
+    @Test
+    void saveUser() {
+        User user = new User();
+        int i = (int) (Math.random()*100);
+        user.setAge(i);
+        user.setUserName("test"+i);
+        user.setPassword("test"+i);
+        user.setName("test"+i);
+        user.setCreated(new Date());
+        userService.saveUser(user);
+    }
+}
+```
+
+#### spring boot整合-redis
+
+```yaml
+  redis:
+    host: 127.0.0.1
+    port: 6379
+```
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-redis</artifactId>
+</dependency>
+```
+
+- redis测试类
+
+```java
+package com.tort.tortspringboot.redis;
+
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.test.context.junit4.SpringRunner;
+
+import java.util.List;
+import java.util.Set;
+
+@RunWith(SpringRunner.class)
+@SpringBootTest
+public class RedisTest {
+    @Autowired
+    private RedisTemplate redisTemplate;
+
+    @Test
+    public void   test(){
+        System.out.println("redis连接成功 : " + redisTemplate);
+        //string 字符串
+//        redisTemplate.opsForValue().set("str","testRedis");
+        redisTemplate.boundValueOps("str").set("test");
+        System.out.println("str = " +redisTemplate.boundValueOps("str").get());
+        System.out.println("str 的大小： " +redisTemplate.boundValueOps("str").size());//大小 11
+        System.out.println("str 的大小： " +redisTemplate.boundValueOps("str").get().equals("test"));
+        System.out.println("str 的数据类型： " +redisTemplate.boundValueOps("str").getType());
+
+        //hash 散列
+        redisTemplate.boundHashOps("h_key").put("name","xm");
+        redisTemplate.boundHashOps("h_key").put("age",12);
+        //获取所有域
+        Set h_key = redisTemplate.boundHashOps("h_key").keys();
+        System.out.println("hash散列的所有域： " +h_key);
+        //获取所有值
+        List h_key1 = redisTemplate.boundHashOps("h_key").values();
+        System.out.println("hash散列的所有域的值：" + h_key1);
+
+        //list 列表
+        redisTemplate.boundListOps("l_key").remove(0,"b");//移除所有 b
+        redisTemplate.boundListOps("l_key").leftPop();
+        redisTemplate.boundListOps("l_key").leftPush("c");
+        redisTemplate.boundListOps("l_key").leftPush("b");
+        redisTemplate.boundListOps("l_key").leftPush("a");
+        List l_key = redisTemplate.boundListOps("l_key").range(0, -1);
+        System.out.println("list列表中的所有元素：" + l_key);
+
+        //set 集合
+        redisTemplate.boundSetOps("s_key").add("a","b","c");
+        Set s_key = redisTemplate.boundSetOps("s_key").members();
+        System.out.println("set集合中的所有元素： " + s_key);
+
+        //sorted set 有序集合
+        redisTemplate.boundZSetOps("z_key").add("c",3);
+        redisTemplate.boundZSetOps("z_key").add("a",1);
+        redisTemplate.boundZSetOps("z_key").add("b",2);
+        Set z_key = redisTemplate.boundZSetOps("z_key").range(0, -1);
+        System.out.println("sorted set 有序集合中的所有元素：" + z_key);
+
+
+        System.out.println("end...");
+    }
 }
 
 ```
